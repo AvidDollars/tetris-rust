@@ -22,6 +22,7 @@ fn main() {
                     title: "Tetris".into(),
                     name: Some("bevy.app".into()),
                     resolution: (1920., 1080.).into(),
+                    fit_canvas_to_parent: true, // FROM: https://mevlyshkin.com/blog/bevy-github-actions/
                     ..default()
                 }),
                 ..default()}),

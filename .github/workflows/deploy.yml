@@ -1,0 +1,55 @@
+name: Deploy WASM build to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ github.ref || github.run_id }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Add WASM
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install WASM bindgen CLI
+        run: cargo install -f wasm-bindgen-cli
+      - name: Install alsa and udev
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Build
+        run: cargo build --release --target wasm32-unknown-unknown && wasm-bindgen --out-dir ./out/ --target web ./target/wasm32-unknown-unknown/release/tetris_in_rust.wasm  
+      - name: Copy
+        run: cp -R assets out/ && cp index.html out/index.html && cp style.css out
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'out'
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: 'https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/'
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy
+        uses: actions/deploy-pages@v4
